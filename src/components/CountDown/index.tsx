@@ -1,6 +1,6 @@
 import './style.scss';
 import React, { useLayoutEffect, useMemo } from 'react';
-import { dashboard, bitable, DashboardState, IConfig } from "@lark-base-open/js-sdk";
+import { dashboard, bitable, DashboardState, IConfig, IDataCondition, SourceType, FilterConjunction, FilterOperator } from "@lark-base-open/js-sdk";
 import { Button, DatePicker, ConfigProvider, Checkbox, Row, Col, Input, Switch } from '@douyinfe/semi-ui';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getTime } from './utils';
@@ -72,6 +72,12 @@ const defaultUnits = ['sec', 'min', 'hour', 'day']
 export default function CountDown() {
 
   const { t, i18n } = useTranslation();
+
+  useEffect(() => {
+    bitable.dashboard.getData().then((v) => {
+      console.log('useeffect中====中getData:', v)
+    })
+  }, [])
 
   // create时的默认配置
   const [config, setConfig] = useState<ICountDownConfig>({
@@ -161,6 +167,16 @@ function CountdownView({ config, isConfig, availableUnits, t }: ICountdownView) 
       });
     }, 1000);
 
+    bitable.dashboard.onDataChange((v) => {
+      console.log('====on onDataChange:', v);
+      bitable.dashboard.getData().then((v) => {
+        console.log('====onchange 中再次getData:', v)
+      })
+    })
+
+    bitable.dashboard.onConfigChange((v) => {
+      console.log('==== on config change', v)
+    })
     return () => {
       clearInterval(timer);
     };
@@ -219,17 +235,33 @@ function ConfigPanel(props: {
   t: TFunction<"translation", undefined>,
 }) {
   const { config, setConfig, availableUnits, t } = props;
+  const [tableId, setTableId] = useState('')
+  const dataConditions: IDataCondition[] = [{
+    tableId,
+    // dataRange: {
+    //   type: SourceType.ALL,
+    //   filterInfo: {
+    //     conjunction: FilterConjunction.And,
+    //     conditions: [{
+    //       fieldId: 'fldElBo99S',
+    //       value: '3',
+    //       operator: FilterOperator.Contains
+    //     }]
+    //   }
+    // }
+  }]
 
   /**保存配置 */
   const onSaveConfig = () => {
     dashboard.saveConfig({
       customConfig: config,
-      dataConditions: [],
+      dataConditions,
     } as any)
   }
 
   return (
     <div className='config-panel'>
+      <Input onChange={(e)=>setTableId(e)} placeholder='请输入数据源tableId' />
       <div className='form'>
         <Item label={t('label.set.target')}>
           <DatePicker
